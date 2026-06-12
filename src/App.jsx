@@ -1,0 +1,734 @@
+import { useState } from 'react';
+import { INITIAL_USER_PROFILE, MOCK_JOBS } from './data/mockData';
+
+export default function App() {
+      const [profile, setProfile] = useState(INITIAL_USER_PROFILE);
+      const [currentStep, setCurrentStep] = useState(1); // Step 1: Discover, Step 2: Verify, Step 3: Action
+      const [selectedJob, setSelectedJob] = useState(MOCK_JOBS[0]);
+      const [copiedField, setCopiedField] = useState(null);
+      const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "profile"
+      const [showCoachModal, setShowCoachModal] = useState(false);
+      const [showLaunchModal, setShowLaunchModal] = useState(false);
+      const [customMessage, setCustomMessage] = useState("");
+      const [coachList] = useState([
+        { name: "Coach Angela", field: "Marketing Tech", avatar: "👩‍💼" },
+        { name: "Coach Mike", field: "Data & Systems", avatar: "👨‍💼" }
+      ]);
+      const [selectedCoach, setSelectedCoach] = useState(coachList[0]);
+      const [forumPosts, setForumPosts] = useState([
+        { author: "Juan (You)", role: "Kadet", message: "Hi! Asking for review on my Zenar Tech application packet.", category: "Ask Me Anything", date: "Just now" }
+      ]);
+
+      // Handle custom copy action for iframe/canvas compatibility
+      const handleCopyText = (text, fieldName) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          setCopiedField(fieldName);
+          setTimeout(() => setCopiedField(null), 2000);
+        } catch (err) {
+          console.error("Copy failed", err);
+        }
+        document.body.removeChild(textArea);
+      };
+
+      const handlePostToCommunity = (e) => {
+        e.preventDefault();
+        const messageToSend = customMessage.trim() || `Hi ${selectedCoach.name}! I am preparing my application for the "${selectedJob.title}" role at ${selectedJob.company}. Could you review my credentials?`;
+        setForumPosts([
+          { author: "Juan (You)", role: "Kadet", message: messageToSend, category: "Ask Me Anything", date: "Just now" },
+          ...forumPosts
+        ]);
+        setCustomMessage("");
+        setShowCoachModal(false);
+        setCopiedField("community-post");
+        setTimeout(() => setCopiedField(null), 4000);
+      };
+
+      const selectJobAndGoToVerify = (job) => {
+        setSelectedJob(job);
+        setCurrentStep(2);
+      };
+
+      return (
+        <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans text-[#201F1F]">
+
+          {/* --- KADAKAREER TOP HEADER --- */}
+          <header className="bg-deepTeal text-white shadow-sm py-3 px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+            <div className="flex items-center space-x-3">
+              <div className="bg-white p-1.5 rounded-lg flex items-center justify-center">
+                {/* Custom SVG KadaKareer Logo Outline */}
+                <svg className="w-8 h-8 text-deepTeal" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 20H40V40H20V20Z" fill="#F3AC5B" />
+                  <path d="M45 20H80V45H45V20Z" fill="#0E4D78" stroke="#FFFFFF" strokeWidth="4" />
+                  <path d="M20 45H45V80H20V45Z" fill="#8BCBEB" />
+                  <circle cx="65" cy="65" r="15" fill="#F3AC5B" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl font-extrabold tracking-wide kada-title">
+                  KadaKareer <span className="text-vibrantOrange">Launchpad</span>
+                </h1>
+                <p className="text-xs text-lightBlue kada-body">Your pre-application staging workspace</p>
+              </div>
+            </div>
+
+            {/* Header Navigation */}
+            <div className="flex items-center space-x-4 text-sm font-semibold kada-body">
+              <button
+                onClick={() => { setActiveTab("dashboard"); setCurrentStep(1); }}
+                className={`px-3 py-1.5 rounded-lg transition ${activeTab === "dashboard" ? "bg-vibrantOrange text-deepTeal" : "hover:text-lightBlue"}`}
+              >
+                📋 Launchpad Workspace
+              </button>
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`px-3 py-1.5 rounded-lg transition ${activeTab === "profile" ? "bg-vibrantOrange text-deepTeal" : "hover:text-lightBlue"}`}
+              >
+                👤 My Kada Profile
+              </button>
+              <div className="h-6 w-px bg-lightBlue hidden sm:block"></div>
+              <div className="flex items-center space-x-2 bg-navyBlue py-1 px-3 rounded-full text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-400 inline-block animate-pulse"></span>
+                <span>Kadet Level 3</span>
+              </div>
+            </div>
+          </header>
+
+          {/* --- NOTIFICATION TOAST BAR --- */}
+          {copiedField && (
+            <div className="bg-green-600 text-white text-center py-2.5 px-4 shadow-md text-sm font-semibold animate-fade-in flex items-center justify-center space-x-2 sticky top-0 z-40 kada-body">
+              <span>✓</span>
+              <span>
+                {copiedField === "community-post"
+                  ? "Kada-Post published! Your career coach has been tagged in your Discourse AMA thread."
+                  : `Copied your ${copiedField}! Ready na i-paste sa application form.`}
+              </span>
+            </div>
+          )}
+
+          {/* --- MAIN TAB CONTENT --- */}
+          <main className="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-8 flex flex-col justify-start">
+
+            {/* TAB 1: WORKSPACE */}
+            {activeTab === "dashboard" && (
+              <div className="flex flex-col space-y-6">
+
+                {/* PROGRESS STEP BAR (Visual Guide with Redundancy Removed) */}
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 kada-body">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Your Progress:</span>
+
+                  <div className="flex items-center space-x-2 w-full md:w-auto justify-center md:justify-end">
+                    {/* Step 1 */}
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition ${currentStep === 1 ? 'bg-deepTeal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentStep >= 1 ? 'bg-vibrantOrange text-black' : 'bg-gray-200'}`}>1</span>
+                      <span>Discover Careers</span>
+                    </button>
+
+                    <span className="text-gray-300">➔</span>
+
+                    {/* Step 2 */}
+                    <button
+                      onClick={() => currentStep > 1 ? setCurrentStep(2) : null}
+                      disabled={currentStep < 2}
+                      className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition ${currentStep === 2 ? 'bg-deepTeal text-white' : 'text-gray-500 disabled:opacity-50'}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentStep >= 2 ? 'bg-vibrantOrange text-black' : 'bg-gray-200'}`}>2</span>
+                      <span>Verify Skills</span>
+                    </button>
+
+                    <span className="text-gray-300">➔</span>
+
+                    {/* Step 3 */}
+                    <button
+                      onClick={() => currentStep > 2 ? setCurrentStep(3) : null}
+                      disabled={currentStep < 3}
+                      className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition ${currentStep === 3 ? 'bg-deepTeal text-white' : 'text-gray-500 disabled:opacity-50'}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentStep >= 3 ? 'bg-vibrantOrange text-black' : 'bg-gray-200'}`}>3</span>
+                      <span>Launch & Paste</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* STEP 1 VIEW: DISCOVER PARTNER CAREERS */}
+                {currentStep === 1 && (
+                  <div className="space-y-6 animate-fade-in">
+
+                    {/* --- HEADER BLOCK --- */}
+                    <div className="bg-white border-b border-gray-100 py-8 px-4 text-center sm:text-left flex flex-col items-center sm:items-start space-y-4">
+                      <h2 className="text-4xl sm:text-5xl font-extrabold text-[#5BAAE2] kada-title leading-tight tracking-tight">
+                        Launch your career, <br className="hidden sm:inline" />
+                        kasama ang buong Kada
+                      </h2>
+                      <p className="text-lg text-gray-700 max-w-2xl kada-body">
+                        KadaKareer provides you with <strong className="font-extrabold text-[#201F1F]">free coaches</strong>, <strong className="font-extrabold text-[#201F1F]">resources</strong>, and an <strong className="font-extrabold text-[#201F1F]">online community</strong> to help kickstart your career.
+                      </p>
+                      <p className="text-base text-gray-500 italic font-medium kada-body">
+                        Tara na, and start your journey with us!
+                      </p>
+                    </div>
+
+                    {/* Clean job listings grid layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {MOCK_JOBS.map((job) => {
+                        const matchingVa = profile.completedVAs.find(va => va.id === job.matchingVaId);
+                        return (
+                          <div
+                            key={job.id}
+                            className="bg-white border border-gray-200 hover:border-deepTeal rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <span className="text-[10px] bg-lightBlue bg-opacity-25 text-navyBlue font-extrabold px-2.5 py-1 rounded-full uppercase kada-body">
+                                  {job.type}
+                                </span>
+                                <span className="text-xs text-red-600 font-bold kada-body">⏳ {job.deadline}</span>
+                              </div>
+
+                              <h3 className="text-lg leading-snug text-deepTeal kada-title">{job.title}</h3>
+                              <p className="text-sm font-bold text-gray-700 kada-body">{job.company}</p>
+                              <p className="text-xs text-gray-500 kada-body">📍 {job.location} • 💰 {job.salary}</p>
+                              <p className="text-xs text-gray-600 line-clamp-2 pt-2 border-t border-gray-50 kada-body">
+                                {job.aboutCompany}
+                              </p>
+                            </div>
+
+                            {matchingVa && (
+                              <div className="bg-green-50 text-green-800 text-xs font-bold p-2.5 rounded-lg border border-green-100 flex items-center space-x-1.5 kada-body">
+                                <span>✅</span>
+                                <span>Matched to your "{matchingVa.title}" VA</span>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => selectJobAndGoToVerify(job)}
+                              className="w-full py-2.5 bg-vibrantOrange hover:bg-vibrantOrangeHover text-darkCharcoal font-bold rounded-xl text-xs transition shadow-sm kada-body"
+                            >
+                              Prepare This Application ➜
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                  </div>
+                )}
+
+                {/* STEP 2 VIEW: BUILD CONFIDENCE & VERIFY */}
+                {currentStep === 2 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fade-in">
+
+                    {/* Left explanation card (5 cols) */}
+                    <div className="lg:col-span-5 space-y-4">
+                      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 kada-body">Step 2 of 3</span>
+                        <h3 className="text-xl font-bold text-deepTeal mt-1 mb-3 kada-title">🛡️ Kada-Readiness Matrix</h3>
+
+                        <p className="text-xs text-gray-600 leading-relaxed mb-4 kada-body">
+                          Early-stage career seekers in the Philippines often encounter job posts requiring unrealistic 4-year degree expectations.
+                        </p>
+                        <p className="text-xs text-gray-600 leading-relaxed mb-4 kada-body">
+                          Here, we match the skills requested by <strong className="text-deepTeal">{selectedJob.company}</strong> against your actual, verified accomplishments. Let's see why you're qualified!
+                        </p>
+
+                        <div className="border-t border-gray-100 pt-4 flex flex-col space-y-2 kada-body">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Target Role:</span>
+                            <strong className="text-gray-800">{selectedJob.title}</strong>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Employer Partner:</span>
+                            <strong className="text-gray-800">{selectedJob.company}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ask a Coach CTA block */}
+                      <div className="bg-deepTeal text-white rounded-2xl p-6 shadow-sm">
+                        <h4 className="font-bold text-sm text-vibrantOrange mb-2 kada-title">🤔 Confused or Feeling Imposter Syndrome?</h4>
+                        <p className="text-xs text-gray-200 leading-relaxed mb-4 kada-body">
+                          Don't feel discouraged if you lack minor requirements. Ask our volunteer network of coaches to review your credentials or back you up in our community forum!
+                        </p>
+                        <button
+                          onClick={() => setShowCoachModal(true)}
+                          className="w-full py-2.5 bg-navyBlue hover:bg-[#003d66] text-white border border-lightBlue border-opacity-30 rounded-xl text-xs font-bold transition kada-body"
+                        >
+                          💬 Connect with Coach Angela / Mike
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right grid: Matcher Matrix (7 cols) */}
+                    <div className="lg:col-span-7 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
+                      <div className="border-b border-gray-50 pb-4">
+                        <h4 className="font-bold text-deepTeal text-sm kada-title">Skills Matcher Analyzer</h4>
+                        <p className="text-xs text-gray-400 mt-1 kada-body">Comparing job requirements with your profile achievements.</p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {selectedJob.requiredSkills.map((skill, index) => {
+                          const acquiredVa = profile.completedVAs.find(va => va.skills.includes(skill));
+                          return (
+                            <div
+                              key={index}
+                              className={`p-4 rounded-xl border flex justify-between items-center gap-4 ${acquiredVa ? 'bg-green-50 bg-opacity-45 border-green-200' : 'bg-amber-50 bg-opacity-40 border-amber-200'}`}
+                            >
+                              <div className="space-y-1">
+                                <span className="text-[10px] text-gray-400 font-extrabold uppercase kada-body">Skill Requirement #{index + 1}</span>
+                                <p className="text-sm font-extrabold text-darkCharcoal kada-title">{skill}</p>
+                              </div>
+
+                              {acquiredVa ? (
+                                <div className="text-right kada-body">
+                                  <span className="inline-flex items-center space-x-1 text-[11px] bg-green-100 text-green-800 font-bold px-2.5 py-1 rounded-full">
+                                    <span>✓</span> <span>Verified</span>
+                                  </span>
+                                  <p className="text-[10px] text-gray-500 mt-1">via {acquiredVa.title}</p>
+                                </div>
+                              ) : (
+                                <div className="text-right kada-body">
+                                  <span className="inline-flex items-center text-[11px] bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full">
+                                    <span>⚠️</span> <span>Self-Verify</span>
+                                  </span>
+                                  <p className="text-[10px] text-gray-500 mt-1">Add details on Step 3</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Matching apprentice highlight */}
+                      <div className="bg-blue-50 bg-opacity-40 p-4 rounded-xl border border-lightBlue border-opacity-40 kada-body">
+                        <p className="text-xs font-bold text-deepTeal uppercase">KadaKareer Endorsement Match</p>
+                        <p className="text-xs text-gray-700 mt-1 leading-relaxed">
+                          "Completed Virtual Apprenticeship matches {selectedJob.company}'s preferred candidate background."
+                        </p>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-4 border-t border-gray-100 kada-body">
+                        <button
+                          onClick={() => setCurrentStep(1)}
+                          className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-700"
+                        >
+                          Back to Jobs
+                        </button>
+                        <button
+                          onClick={() => setCurrentStep(3)}
+                          className="px-6 py-2.5 bg-vibrantOrange hover:bg-vibrantOrangeHover text-darkCharcoal font-bold rounded-xl text-xs shadow-sm"
+                        >
+                          Step 3: Staging My Clipboard ➜
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* STEP 3 VIEW: THE STAGING CLIPBOARD */}
+                {currentStep === 3 && (
+                  <div className="space-y-6 animate-fade-in">
+
+                    {/* Staging clipboard introduction header */}
+                    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 kada-body">Step 3 of 3</span>
+                          <h3 className="text-2xl font-bold text-deepTeal mt-1 kada-title">📝 Your Application Staging Ground</h3>
+                          <p className="text-xs text-gray-500 mt-1 kada-body">
+                            Use the copy buttons below to easily fill out blank external corporate forms.
+                          </p>
+                        </div>
+
+                        <div className="flex space-x-2 kada-body">
+                          <button
+                            onClick={() => setCurrentStep(2)}
+                            className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-700"
+                          >
+                            Back to Verify
+                          </button>
+                          <button
+                            onClick={() => setShowLaunchModal(true)}
+                            className="px-6 py-2.5 bg-vibrantOrange hover:bg-vibrantOrangeHover text-darkCharcoal font-bold rounded-xl text-xs shadow-sm"
+                          >
+                            🚀 Launch Redirect
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Staging grids */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                      {/* Bio block */}
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs font-bold text-deepTeal uppercase kada-title">📝 Elevator Pitch / Personal Bio</span>
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">Bio Field</span>
+                          </div>
+                          <p className="text-xs text-gray-600 italic bg-gray-50 p-4 rounded-xl mb-4 leading-relaxed kada-body">
+                            "{profile.bio}"
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleCopyText(profile.bio, "Bio Pitch")}
+                          className="w-full py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-deepTeal transition kada-body"
+                        >
+                          📋 Copy Personal Bio Pitch
+                        </button>
+                      </div>
+
+                      {/* Certified portfolio block */}
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs font-bold text-deepTeal uppercase kada-title">🏅 Verified Portfolio URL</span>
+                            <span className="text-[10px] bg-green-100 text-green-800 px-2 py-0.5 rounded font-mono">Linked Badge</span>
+                          </div>
+                          <div className="space-y-2 mb-4 bg-gray-50 p-4 rounded-xl kada-body">
+                            {profile.completedVAs.map(va => (
+                              <div key={va.id} className="text-xs text-gray-700 font-semibold flex justify-between">
+                                <span>• {va.title}</span>
+                                <span className="text-green-700 font-bold">Verified ✓</span>
+                              </div>
+                            ))}
+                            <p className="text-[10px] text-gray-400 font-mono mt-3 truncate border-t border-gray-200 border-opacity-40 pt-2">
+                              https://app.kadakareer.com/portfolio/{profile.name.toLowerCase().replace(/\s+/g, '-')}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleCopyText(`https://app.kadakareer.com/portfolio/${profile.name.toLowerCase().replace(/\s+/g, '-')}`, "Kada Portfolio URL")}
+                          className="w-full py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-deepTeal transition kada-body"
+                        >
+                          📋 Copy Portfolio Link
+                        </button>
+                      </div>
+
+                      {/* Academic credentials block */}
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs font-bold text-deepTeal uppercase kada-title">🎓 Education & Affiliation</span>
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">School Field</span>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-1.5 text-xs text-gray-700 kada-body">
+                            <p><strong className="text-gray-400">Institution:</strong> {profile.university}</p>
+                            <p><strong className="text-gray-400">Location:</strong> {profile.location}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleCopyText(`${profile.university}, ${profile.location}`, "School Affiliation")}
+                          className="w-full py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-deepTeal transition kada-body"
+                        >
+                          📋 Copy Education Block
+                        </button>
+                      </div>
+
+                      {/* Contact info block */}
+                      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs font-bold text-deepTeal uppercase kada-title">📞 Contact Information</span>
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono">Contact Fields</span>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-1.5 text-xs text-gray-700 kada-body">
+                            <p><strong className="text-gray-400">Email:</strong> {profile.email}</p>
+                            <p><strong className="text-gray-400">Mobile:</strong> {profile.contact}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleCopyText(`Email: ${profile.email}\nPhone: ${profile.contact}`, "Contacts")}
+                          className="w-full py-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-deepTeal transition kada-body"
+                        >
+                          📋 Copy Contact Block
+                        </button>
+                      </div>
+
+                    </div>
+
+                    {/* Staging discussion logs */}
+                    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                      <h4 className="font-bold text-deepTeal text-sm mb-2 flex items-center gap-1.5 kada-title">
+                        <span>💬</span>
+                        <span>Your Active Discord AMA & Coach Syncs</span>
+                      </h4>
+                      <p className="text-xs text-gray-500 mb-4 kada-body">
+                        Threads linked from <code className="bg-gray-100 px-1 py-0.5 rounded text-[#0E4D78]">community.kadakareer.com</code> for this submission.
+                      </p>
+
+                      <div className="space-y-3">
+                        {forumPosts.map((post, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3 kada-body">
+                            <div className="text-xl bg-lightBlue bg-opacity-30 p-1 rounded-full w-8 h-8 flex items-center justify-center">
+                              🎓
+                            </div>
+                            <div>
+                              <div className="flex space-x-2 items-center">
+                                <span className="text-xs font-bold text-deepTeal">{post.author}</span>
+                                <span className="text-[10px] text-gray-400">{post.date}</span>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-0.5">"{post.message}"</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* TAB 2: EDIT PROFILE */}
+            {activeTab === "profile" && (
+              <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm max-w-3xl mx-auto w-full animate-fade-in">
+                <h2 className="text-2xl font-bold text-deepTeal mb-2 kada-title">👤 Customize Your Kada Profile</h2>
+                <p className="text-xs text-gray-500 mb-6 kada-body">
+                  Update your core bio, achievements, and contacts. Changes made here instantly repackage your copyable staging credentials.
+                </p>
+
+                <form onSubmit={(e) => { e.preventDefault(); setActiveTab("dashboard"); setCurrentStep(1); }} className="space-y-4 kada-body">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        value={profile.name}
+                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-deepTeal"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Affiliation / School</label>
+                      <input
+                        type="text"
+                        value={profile.university}
+                        onChange={(e) => setProfile({ ...profile, university: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-deepTeal"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Email Address</label>
+                      <input
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-deepTeal"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Mobile Contact</label>
+                      <input
+                        type="text"
+                        value={profile.contact}
+                        onChange={(e) => setProfile({ ...profile, contact: e.target.value })}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-deepTeal"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Personal Elevator Pitch (Bio)</label>
+                    <textarea
+                      rows="4"
+                      value={profile.bio}
+                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-deepTeal"
+                      placeholder="Tell hiring managers what skills you've built inside KadaKareer..."
+                    />
+                  </div>
+
+                  <div className="bg-lightBlue bg-opacity-20 p-4 rounded-lg border border-lightBlue border-opacity-35">
+                    <h4 className="text-xs font-extrabold text-deepTeal uppercase mb-2">Verified Virtual Apprenticeship Badges</h4>
+                    <div className="space-y-2">
+                      {profile.completedVAs.map(va => (
+                        <div key={va.id} className="flex items-center justify-between text-xs bg-white p-2.5 rounded shadow-sm border border-gray-100">
+                          <span className="font-bold text-deepTeal">{va.icon} {va.title}</span>
+                          <span className="text-xs font-medium text-gray-500">Completed in {va.date}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab("dashboard"); setCurrentStep(1); }}
+                      className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-vibrantOrange hover:bg-vibrantOrangeHover text-[#201F1F] font-bold rounded text-xs shadow-sm"
+                    >
+                      Save changes & Return
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+          </main>
+
+          {/* --- FOOTER --- */}
+          <footer className="bg-gray-100 border-t border-gray-200 py-6 px-4 text-center mt-12 kada-body">
+            <p className="text-xs text-[#685D5D]">
+              KadaKareer Launchpad is an application staging initiative created to secure the career paths of underprivileged Filipino students.
+            </p>
+            <p className="text-xs text-[#685D5D] mt-1.5">
+              Designed with ❤️ for the KadaKareer Product Management Mini-Assignment. © 2026.
+            </p>
+          </footer>
+
+          {/* --- MODAL 1: ASK A COACH MODAL --- */}
+          {showCoachModal && (
+            <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 animate-scale-up kada-body">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                  <h3 className="text-base font-bold text-deepTeal kada-title">💬 Ask a Coach about this Role</h3>
+                  <button onClick={() => setShowCoachModal(false)} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+                </div>
+
+                <p className="text-xs text-gray-500 mb-4">
+                  Our professional volunteer mentors are here to guide you before you click that external "Apply" link. Select your coach to generate a customized review ticket.
+                </p>
+
+                <form onSubmit={handlePostToCommunity} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Select Specialty Coach</label>
+                    <select
+                      className="w-full border border-gray-300 rounded p-2 text-xs"
+                      onChange={(e) => setSelectedCoach(coachList.find(c => c.name === e.target.value) || coachList[0])}
+                    >
+                      {coachList.map((coach, idx) => (
+                        <option key={idx} value={coach.name}>{coach.name} ({coach.field})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-deepTeal uppercase mb-1">Pre-formatted Forum Message</label>
+                    <textarea
+                      rows="4"
+                      className="w-full border border-gray-300 rounded p-2 text-xs font-mono bg-gray-50 text-gray-700"
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      placeholder={`Hi ${selectedCoach.name}! Naghahanda po ako para mag-apply sa "${selectedJob.title}" role sa ${selectedJob.company}. Na-match ko na po yung verified VA ko sa skills matrix. Pwede niyo po ba akong gabayan para ma-review yung custom bio pitch ko? Salamat!`}
+                    />
+                  </div>
+
+                  <div className="bg-amber-50 p-3 rounded text-amber-800 text-[11px] leading-relaxed">
+                    ℹ️ <strong>Bilingual Bridge:</strong> Submitting this generated ticket automatically starts a thread in the <strong>Ask Me Anything (AMA)</strong> category of the Discourse forum so other Kadets can learn from your query!
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCoachModal(false)}
+                      className="px-4 py-2 border border-gray-300 text-gray-500 rounded text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-vibrantOrange hover:bg-vibrantOrangeHover text-darkCharcoal rounded text-xs font-bold shadow-sm"
+                    >
+                      Post to community.kadakareer.com
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* --- MODAL 2: LAUNCH STAGING REDIRECTS --- */}
+          {showLaunchModal && (
+            <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 animate-scale-up kada-body">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                  <h3 className="text-base font-bold text-deepTeal kada-title">🚀 Prepared and Protected? Launchpad Active!</h3>
+                  <button onClick={() => setShowLaunchModal(false)} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+                </div>
+
+                <div className="flex items-center space-x-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-3xl">🛡️</span>
+                  <div>
+                    <h4 className="text-xs font-bold text-deepTeal uppercase kada-title">KadaKareer Protection Active</h4>
+                    <p className="text-xs text-gray-600">We've backed your platform credentials and saved your matched achievements in your clipboard. You're ready to tackle the double redirect!</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Here's a quick step-by-step checklist of what is going to happen next. Knowing your roadmap reduces surprise and friction:
+                  </p>
+
+                  <div className="relative border-l-2 border-dashed border-lightBlue pl-6 ml-3 space-y-4">
+                    {/* Step 1 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] top-0 bg-deepTeal text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">1</div>
+                      <h5 className="text-xs font-extrabold text-deepTeal kada-title">Your Clipboard Checklist is Full</h5>
+                      <p className="text-[11px] text-gray-500">Make sure to copy your pitch and verification URL. You will paste them directly on the employer's landing page.</p>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] top-0 bg-deepTeal text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">2</div>
+                      <h5 className="text-xs font-extrabold text-deepTeal kada-title">Portal Handover (`kadakareer.prosple.com`)</h5>
+                      <p className="text-[11px] text-gray-500">You will land on the Prosple job directory card. Click the orange "Apply Now" button.</p>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] top-0 bg-vibrantOrange text-black w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">3</div>
+                      <h5 className="text-xs font-extrabold text-vibrantOrange kada-title">External Employer ATS (Greenhouse/Lever)</h5>
+                      <p className="text-[11px] text-gray-500">Paste your credentials into their form fields. Your achievements are verified via your unique Kada link.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 p-3 rounded text-green-800 text-[11px] font-semibold text-center border border-green-200">
+                    📣 "Launch your career, kasama ang buong Kada!"
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowLaunchModal(false)}
+                      className="px-4 py-2 border border-gray-300 text-gray-500 rounded text-xs font-bold"
+                    >
+                      Stay & Review More
+                    </button>
+                    <a
+                      href={selectedJob.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowLaunchModal(false)}
+                      className="px-5 py-2 bg-vibrantOrange hover:bg-vibrantOrangeHover text-darkCharcoal rounded text-xs font-bold text-center shadow-sm"
+                    >
+                      Launch Redirect Staging ➜
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    

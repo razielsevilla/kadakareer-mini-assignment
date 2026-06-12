@@ -18,20 +18,6 @@ Instead of pushing users straight into a jarring external loop, the Launchpad ac
 
 ---
 
-## 🎨 Branding Guidelines & Identity
-
-### Product Name: **KadaKareer Handshake**
-* **The Concept:** A "handshake" represents agreement, the official transition from professional training to real-world employment, and a firm mutual commitment. It maintains the localized, community-oriented "Kada" identity while explicitly framing the feature as a bridge to corporate hiring partners.
-
-### Tagline:
-> **"Your credentials packed. Your community behind you. Your next step secured."**
-
-### Visual & Emotional Guidelines
-* **Tone & Voice:** Empowering, structured, reassuring, and highly motivating. It should feel like an encouraging, organized mentor walking you straight to the door of your interview.
-* **Color Accent Trajectory:** To maintain continuity with contemporary tech designs, the UI leverages deep, reliable blues for structural elements, clean cyans for verified metrics, and vibrant orange accents for focal call-to-actions (such as launching applications or initializing coach reviews).
-
----
-
 ## 🛠️ Key Feature Pillars
 
 ### 🧭 1. Discover Careers (The Contextual Interface)
